@@ -10,6 +10,9 @@ import TrainingDashboard from './pages/TrainingDashboard';
 import AgentInspector from './pages/AgentInspector';
 import Configuration from './pages/Configuration';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000';
+
 export default function App() {
   const [showLanding, setShowLanding] = useState<boolean>(true);
   const [activePage, setActivePage] = useState<string>('simulator');
@@ -36,7 +39,7 @@ export default function App() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await fetch('http://localhost:8000/training-stats');
+        const response = await fetch(`${API_URL}/training-stats`);
         if (response.ok) {
           const data = await response.json();
           setStats(data);
@@ -62,7 +65,7 @@ export default function App() {
     setSteps([]);
     setSelectedStep(null);
 
-    const ws = new WebSocket('ws://localhost:8000/ws/episode');
+    const ws = new WebSocket(`${WS_URL}/ws/episode`);
 
     ws.onopen = () => {
       // Send parameters payload
