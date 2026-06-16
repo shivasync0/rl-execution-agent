@@ -12,10 +12,11 @@ import {
 interface SidebarProps {
   activePage: string;
   setActivePage: (page: string) => void;
+  isExpanded: boolean;
+  setIsExpanded: (expanded: boolean) => void;
 }
 
-export default function Sidebar({ activePage, setActivePage }: SidebarProps) {
-  const [isExpanded, setIsExpanded] = useState(true);
+export default function Sidebar({ activePage, setActivePage, isExpanded, setIsExpanded }: SidebarProps) {
 
   const menuItems = [
     { id: 'simulator', label: 'Live Simulator', icon: Play },
@@ -26,7 +27,7 @@ export default function Sidebar({ activePage, setActivePage }: SidebarProps) {
 
   return (
     <aside 
-      className={`fixed top-0 left-0 h-screen bg-[#171B22] border-r border-[#262C36] text-[#9CA3AF] transition-all duration-300 z-30 flex flex-col ${
+      className={`hidden md:flex fixed top-0 left-0 h-screen bg-[#171B22] border-r border-[#262C36] text-[#9CA3AF] transition-all duration-300 z-30 flex-col ${
         isExpanded ? 'w-[220px]' : 'w-[64px]'
       }`}
     >

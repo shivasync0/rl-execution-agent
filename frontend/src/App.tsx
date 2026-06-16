@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Play, LayoutDashboard, Cpu, Settings } from 'lucide-react';
 
 import Sidebar from './components/Sidebar';
 import StatusPill from './components/StatusPill';
@@ -16,6 +17,7 @@ const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000';
 export default function App() {
   const [showLanding, setShowLanding] = useState<boolean>(true);
   const [activePage, setActivePage] = useState<string>('simulator');
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState<boolean>(true);
   
   // Simulation Variables
   const [orderSize, setOrderSize] = useState<number>(10000);
@@ -207,12 +209,17 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#0F1115] flex flex-row">
       {/* Expandable Sidebar */}
-      <Sidebar activePage={activePage} setActivePage={setActivePage} />
+      <Sidebar 
+        activePage={activePage} 
+        setActivePage={setActivePage} 
+        isExpanded={isSidebarExpanded} 
+        setIsExpanded={setIsSidebarExpanded} 
+      />
 
       {/* Main Content Pane */}
-      <div className="flex-1 pl-[220px] transition-all duration-300 md:pl-[220px]">
+      <div className={`flex-1 transition-all duration-300 ${isSidebarExpanded ? 'pl-0 md:pl-[220px]' : 'pl-0 md:pl-[64px]'}`}>
         {/* Top Header */}
-        <header className="h-14 border-b border-[#262C36] px-6 flex items-center justify-between shrink-0 bg-[#171B22]/80 backdrop-blur-xl sticky top-0 z-20">
+        <header className="h-14 border-b border-[#262C36] px-4 md:px-6 flex items-center justify-between shrink-0 bg-[#171B22]/80 backdrop-blur-xl sticky top-0 z-20">
           <div className="flex items-center gap-4">
             {/* Back to Landing */}
             <button
@@ -260,9 +267,36 @@ export default function App() {
         </header>
 
         {/* Main Content Area */}
-        <main className="p-6 max-w-[1400px] mx-auto pb-16">
+        <main className="p-3 md:p-6 max-w-[1400px] mx-auto pb-24 md:pb-16">
           {renderPage()}
         </main>
+
+        {/* Mobile Bottom Navigation Bar */}
+        <div className="fixed bottom-0 left-0 right-0 h-16 bg-[#171B22]/95 backdrop-blur-xl border-t border-[#262C36] flex md:hidden items-center justify-around z-30 px-2 pb-safe shadow-lg">
+          {[
+            { id: 'simulator', label: 'Simulator', icon: Play },
+            { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+            { id: 'inspector', label: 'Inspector', icon: Cpu },
+            { id: 'config', label: 'Settings', icon: Settings },
+          ].map((item) => {
+            const Icon = item.icon;
+            const isActive = activePage === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActivePage(item.id)}
+                className={`flex flex-col items-center justify-center flex-1 h-full py-1 transition-all duration-200 ${
+                  isActive ? 'text-[#2D8C6A]' : 'text-gray-500 hover:text-gray-300'
+                }`}
+              >
+                <Icon size={18} className="mb-0.5" />
+                <span className="text-[10px] font-medium tracking-tight">
+                  {item.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

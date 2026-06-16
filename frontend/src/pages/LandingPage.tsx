@@ -170,6 +170,14 @@ interface LandingPageProps {
 
 export default function LandingPage({ onEnterDashboard }: LandingPageProps) {
   const [inputText, setInputText] = useState("Execute 10,000 shares over 20 steps");
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const handleLaunch = () => {
     let size: number | undefined = undefined;
@@ -220,7 +228,6 @@ export default function LandingPage({ onEnterDashboard }: LandingPageProps) {
 
       {/* Video BG */}
       <VideoBackground />
-
       {/* ━━━ Navigation Bar ━━━ */}
       <nav
         style={{
@@ -229,7 +236,7 @@ export default function LandingPage({ onEnterDashboard }: LandingPageProps) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '24px 48px',
+          padding: isMobile ? '16px 20px' : '24px 48px',
           gap: '40px',
           maxWidth: '100%',
           boxSizing: 'border-box',
@@ -267,7 +274,7 @@ export default function LandingPage({ onEnterDashboard }: LandingPageProps) {
         {/* Nav Links */}
         <div
           style={{
-            display: 'flex',
+            display: isMobile ? 'none' : 'flex',
             alignItems: 'center',
             gap: '24px',
             marginLeft: '40px',
@@ -485,12 +492,12 @@ export default function LandingPage({ onEnterDashboard }: LandingPageProps) {
             style={{
               fontFamily: "'Fustat', sans-serif",
               fontWeight: 700,
-              fontSize: '84px',
-              letterSpacing: '-3px',
-              lineHeight: 1.05,
+              fontSize: isMobile ? '38px' : '84px',
+              letterSpacing: isMobile ? '-1.5px' : '-3px',
+              lineHeight: 1.1,
               color: '#F4F5F7',
               textAlign: 'center',
-              margin: '0 0 28px 0',
+              margin: isMobile ? '0 0 16px 0' : '0 0 28px 0',
             }}
           >
             Intelligent Order Execution
@@ -501,13 +508,13 @@ export default function LandingPage({ onEnterDashboard }: LandingPageProps) {
             style={{
               fontFamily: "'Fustat', sans-serif",
               fontWeight: 500,
-              fontSize: '20px',
+              fontSize: isMobile ? '14px' : '20px',
               letterSpacing: '-0.3px',
               color: '#9CA3AF',
               textAlign: 'center',
               maxWidth: '720px',
               lineHeight: 1.6,
-              margin: '0 0 44px 0',
+              margin: isMobile ? '0 0 24px 0' : '0 0 44px 0',
             }}
           >
             Simulate, evaluate, and inspect custom neural network agents trained with Soft Actor-Critic (SAC). Minimize execution slippage and market impact under dynamic volatility regimes.
@@ -602,14 +609,14 @@ export default function LandingPage({ onEnterDashboard }: LandingPageProps) {
                     handleLaunch();
                   }
                 }}
-                placeholder="Enter trade size, execution window (e.g. Sell 10000 AAPL over 20 steps)..."
+                placeholder={isMobile ? "Enter trade parameters (e.g. 10000 over 20)..." : "Enter trade size, execution window (e.g. Sell 10000 AAPL over 20 steps)..."}
                 style={{
                   flex: 1,
                   border: 'none',
                   outline: 'none',
                   fontFamily: "'Noto Sans', sans-serif",
                   fontWeight: 400,
-                  fontSize: '15px',
+                  fontSize: isMobile ? '13px' : '15px',
                   color: '#F4F5F7',
                   background: 'transparent',
                 }}
@@ -731,7 +738,7 @@ export default function LandingPage({ onEnterDashboard }: LandingPageProps) {
               background: '#171B22',
               border: '1px solid #262C36',
               borderRadius: '16px',
-              padding: '40px',
+              padding: isMobile ? '20px' : '40px',
               boxSizing: 'border-box',
               display: 'flex',
               flexDirection: 'row',
@@ -759,7 +766,7 @@ export default function LandingPage({ onEnterDashboard }: LandingPageProps) {
               </p>
             </div>
             <div style={{ flex: '1 1 350px', maxWidth: '480px', width: '100%' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
                 {[
                   { name: "Algorithm", val: "Soft Actor-Critic" },
                   { name: "Action Space", val: "Continuous [0.0, 2.0]" },
@@ -789,7 +796,7 @@ export default function LandingPage({ onEnterDashboard }: LandingPageProps) {
               background: '#171B22',
               border: '1px solid #262C36',
               borderRadius: '16px',
-              padding: '40px',
+              padding: isMobile ? '20px' : '40px',
               boxSizing: 'border-box',
               display: 'flex',
               flexDirection: 'row',
@@ -856,7 +863,7 @@ export default function LandingPage({ onEnterDashboard }: LandingPageProps) {
               background: '#171B22',
               border: '1px solid #262C36',
               borderRadius: '16px',
-              padding: '40px',
+              padding: isMobile ? '20px' : '40px',
               boxSizing: 'border-box',
               display: 'flex',
               flexDirection: 'row',
@@ -884,7 +891,7 @@ export default function LandingPage({ onEnterDashboard }: LandingPageProps) {
               </p>
             </div>
             <div style={{ flex: '1 1 350px', maxWidth: '480px', width: '100%' }}>
-              <div style={{ background: '#0F1115', border: '1px solid #262C36', borderRadius: '12px', padding: '16px', overflow: 'hidden' }}>
+              <div style={{ background: '#0F1115', border: '1px solid #262C36', borderRadius: '12px', padding: '16px', overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
                   <thead>
                     <tr style={{ borderBottom: '1px solid #262C36', color: '#9CA3AF' }}>
@@ -925,7 +932,7 @@ export default function LandingPage({ onEnterDashboard }: LandingPageProps) {
               background: '#171B22',
               border: '1px solid #262C36',
               borderRadius: '16px',
-              padding: '40px',
+              padding: isMobile ? '20px' : '40px',
               boxSizing: 'border-box',
               display: 'flex',
               flexDirection: 'row',
@@ -1115,7 +1122,7 @@ export default function LandingPage({ onEnterDashboard }: LandingPageProps) {
             background: '#171B22',
             border: '1px solid #262C36',
             borderRadius: '16px',
-            padding: '40px',
+            padding: isMobile ? '20px' : '40px',
             boxSizing: 'border-box',
           }}
         >
