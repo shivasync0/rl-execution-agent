@@ -60,10 +60,12 @@ export default function LiveSimulator({
     }
   }, [status, steps]);
 
+
   const latestStepData = steps.length > 0 ? steps[steps.length - 1] : null;
+  const strategyKey = activeStrategy === 'sac' ? 'agent' : activeStrategy;
   
   // Extract active strategy metrics
-  const activeMetrics = latestStepData ? latestStepData[activeStrategy] : {
+  const activeMetrics = latestStepData ? latestStepData[strategyKey] : {
     inventory_remaining: 10000,
     total_executed: 0,
     avg_fill_price: 0,
@@ -89,12 +91,12 @@ export default function LiveSimulator({
 
   // Build trades log for blotter
   const tradesLog: TradeLog[] = steps
-    .filter(s => s.step > 0 && s[activeStrategy]?.last_trade_qty > 0)
+    .filter(s => s.step > 0 && s[strategyKey]?.last_trade_qty > 0)
     .map(s => ({
       step: s.step,
-      qty: s[activeStrategy].last_trade_qty,
-      fill_price: s[activeStrategy].last_trade_price,
-      slippage_bps: s[activeStrategy].last_trade_slippage_bps
+      qty: s[strategyKey].last_trade_qty,
+      fill_price: s[strategyKey].last_trade_price,
+      slippage_bps: s[strategyKey].last_trade_slippage_bps
     }));
 
   // Calculate comparisons vs baselines for MetricCards
