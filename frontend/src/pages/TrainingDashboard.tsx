@@ -124,6 +124,9 @@ export default function TrainingDashboard({ stats }: TrainingDashboardProps) {
     }
   ];
 
+  // 5. Policy Heatmap Data
+  const heatmapData = stats.policy_heatmap || [];
+
   return (
     <div className="space-y-6">
       {/* Top Controls / Header */}
@@ -366,6 +369,69 @@ export default function TrainingDashboard({ stats }: TrainingDashboardProps) {
                 <Bar dataKey="VWAP" fill="#C58B39" radius={[2, 2, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Policy Heatmap (12 cols) */}
+        <div className="lg:col-span-12 premium-card p-5 flex flex-col">
+          <div className="flex items-center justify-between border-b border-[rgba(255,255,255,0.07)] pb-3 mb-4 shrink-0">
+            <div className="flex flex-col gap-1">
+              <h3 className="font-semibold text-white tracking-wider text-sm font-sans uppercase">
+                Learned RL Policy Heatmap
+              </h3>
+              <span className="text-[10px] text-gray-500 font-medium font-sans">
+                Agent's trading aggression based on Remaining Inventory vs Time Elapsed (Bright Green = Trade Faster, Dark = Hold)
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-gray-400">
+              <span>0.0</span>
+              <div className="w-24 h-2 bg-gradient-to-r from-[#171B22] to-[#2D8C6A] rounded" />
+              <span>1.0</span>
+            </div>
+          </div>
+
+          <div className="flex-1 w-full flex items-center justify-center p-4">
+            {heatmapData.length === 0 ? (
+              <div className="text-gray-500 italic text-sm">Heatmap data not available</div>
+            ) : (
+              <div className="relative">
+                {/* Y-axis label */}
+                <div className="absolute -left-8 top-1/2 -translate-y-1/2 -rotate-90 text-[10px] text-gray-500 font-bold uppercase tracking-widest whitespace-nowrap">
+                  Inventory Remaining
+                </div>
+                
+                {/* X-axis label */}
+                <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] text-gray-500 font-bold uppercase tracking-widest whitespace-nowrap">
+                  Time Elapsed
+                </div>
+
+                {/* Heatmap Grid */}
+                <div className="flex flex-col gap-1">
+                  {heatmapData.map((row: number[], i: number) => (
+                    <div key={`row-${i}`} className="flex gap-1">
+                      {row.map((val: number, j: number) => {
+                        // val is between 0.0 and 1.0
+                        const intensity = val;
+                        return (
+                          <div
+                            key={`cell-${i}-${j}`}
+                            className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-sm transition-all hover:scale-110 cursor-crosshair group relative"
+                            style={{
+                              backgroundColor: `rgba(45, 140, 106, ${0.1 + intensity * 0.9})`,
+                              border: '1px solid rgba(255,255,255,0.05)'
+                            }}
+                          >
+                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/50 text-white text-[10px] font-mono rounded-sm transition-opacity">
+                              {val.toFixed(2)}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

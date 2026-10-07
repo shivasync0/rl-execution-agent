@@ -10,7 +10,9 @@ import pandas as pd
 from pydantic import BaseModel
 
 from env import ExecutionEnv
+from env_v2 import RealMarketExecutionEnv
 from agent import SACAgent
+from market_data.api import router as market_router, get_provider
 
 app = FastAPI(title="ExecAgent API")
 
@@ -23,13 +25,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(market_router)
+
 # In-memory storage for completed episodes
 episode_history = {}
 
 # Load pre-trained SAC Agent
 device = "cpu"
 weights_path = os.path.join(os.path.dirname(__file__), "sac_weights.pth")
-agent = SACAgent(state_dim=7, action_dim=1, device=device)
+agent = SACAgent(state_dim=10, action_dim=1, device=device)
 
 # Load weights if they exist, otherwise we will expect them to be trained
 if os.path.exists(weights_path):
@@ -48,6 +52,8 @@ class EpisodeConfig(BaseModel):
     market_impact: float = 0.0001
     volatility_regime: str = "low"
     csv_filename: str = None
+    symbol: str = "AAPL"
+    use_real_data: bool = True
 
 
 @app.get("/health")
@@ -98,6 +104,8 @@ async def websocket_endpoint(websocket: WebSocket):
         horizon = int(config_dict.get("horizon", 20))
         market_impact = float(config_dict.get("market_impact", 0.0001))
         volatility_regime = config_dict.get("volatility_regime", "low")
+        symbol = config_dict.get("symbol", "AAPL")
+        use_real_data = config_dict.get("use_real_data", True)
         
         # We also support loading a temporary CSV file path from backend if uploaded
         csv_path = None
@@ -110,28 +118,36 @@ async def websocket_endpoint(websocket: WebSocket):
         # Generate a unique seed for this execution run
         seed = int(uuid.uuid4().int & 0x7FFFFFFF)
         
-        # Initialize 4 environments for parallel tracking:
-        # 1. Agent
-        # 2. TWAP
-        # 3. VWAP
-        # 4. Random
-        # To make sure they are on the exact same price path, we reset them with the same seed.
-        # This aligns the price fluctuations exactly!
-        env_agent = ExecutionEnv(order_size=order_size, horizon=horizon, market_impact=market_impact, volatility_regime=volatility_regime, csv_path=csv_path)
-        env_twap = ExecutionEnv(order_size=order_size, horizon=horizon, market_impact=market_impact, volatility_regime=volatility_regime, csv_path=csv_path)
-        env_vwap = ExecutionEnv(order_size=order_size, horizon=horizon, market_impact=market_impact, volatility_regime=volatility_regime, csv_path=csv_path)
-        env_random = ExecutionEnv(order_size=order_size, horizon=horizon, market_impact=market_impact, volatility_regime=volatility_regime, csv_path=csv_path)
+        # Initialize 4 environments for parallel tracking using RealMarketExecutionEnv
+        provider = get_provider("yahoo") if use_real_data else None
+        
+        env_agent = RealMarketExecutionEnv(order_size=order_size, horizon=horizon, market_impact=market_impact, volatility_regime=volatility_regime, csv_path=csv_path, symbol=symbol, data_provider=provider, use_real_data=use_real_data)
+        env_twap = RealMarketExecutionEnv(order_size=order_size, horizon=horizon, market_impact=market_impact, volatility_regime=volatility_regime, csv_path=csv_path, symbol=symbol, data_provider=provider, use_real_data=use_real_data)
+        env_vwap = RealMarketExecutionEnv(order_size=order_size, horizon=horizon, market_impact=market_impact, volatility_regime=volatility_regime, csv_path=csv_path, symbol=symbol, data_provider=provider, use_real_data=use_real_data)
+        env_random = RealMarketExecutionEnv(order_size=order_size, horizon=horizon, market_impact=market_impact, volatility_regime=volatility_regime, csv_path=csv_path, symbol=symbol, data_provider=provider, use_real_data=use_real_data)
         
         s_agent, info_agent = env_agent.reset(seed=seed)
         s_twap, info_twap = env_twap.reset(seed=seed)
         s_vwap, info_vwap = env_vwap.reset(seed=seed)
         s_random, info_random = env_random.reset(seed=seed)
         
-        # Generate U-shape profile for VWAP
+        # Generate U-shape profile for VWAP (fallback if real volume isn't returned)
         u_profile = np.zeros(horizon)
-        for t_idx in range(horizon):
-            u_profile[t_idx] = (t_idx - horizon/2.0)**2
-        u_profile = u_profile / sum(u_profile)
+        if env_vwap._data_source == "real" and env_vwap._market_data is not None:
+            # Use real volume profile from market data
+            raw_prof = env_vwap._market_data.volume_profile()
+            if len(raw_prof) >= horizon:
+                u_profile = raw_prof[:horizon]
+                u_profile = u_profile / sum(u_profile)
+            else:
+                # pad or fallback
+                for t_idx in range(horizon):
+                    u_profile[t_idx] = (t_idx - horizon/2.0)**2
+                u_profile = u_profile / sum(u_profile)
+        else:
+            for t_idx in range(horizon):
+                u_profile[t_idx] = (t_idx - horizon/2.0)**2
+            u_profile = u_profile / sum(u_profile)
         
         # Store step-by-step history to export later
         episode_id = str(uuid.uuid4())
@@ -204,8 +220,7 @@ async def websocket_endpoint(websocket: WebSocket):
             await asyncio.sleep(0.5)
             
             # --- 1. Agent Decision ---
-            # Reload actor weights dynamically if training completes mid-run
-            # State vector s_agent -> action
+            # Pre-trained agent expects 10-dim state
             action_agent = agent.select_action(s_agent, deterministic=True)
             # Evaluate Q-values for inspector
             q1, q2 = agent.get_q_values(s_agent, action_agent[0])

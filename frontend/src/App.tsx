@@ -26,6 +26,8 @@ export default function App() {
   const [volatilityRegime, setVolatilityRegime] = useState<'low' | 'high'>('low');
   const [dataSource, setDataSource] = useState<'gbm' | 'csv'>('gbm');
   const [csvFilename, setCsvFilename] = useState<string | null>(null);
+  const [symbol, setSymbol] = useState<string>('AAPL');
+  const [useRealData, setUseRealData] = useState<boolean>(true);
 
   // Live Simulation state
   const [status, setStatus] = useState<StatusType>('IDLE');
@@ -76,7 +78,9 @@ export default function App() {
         horizon: horizon,
         market_impact: marketImpact,
         volatility_regime: volatilityRegime,
-        csv_filename: dataSource === 'csv' ? csvFilename : null
+        csv_filename: dataSource === 'csv' ? csvFilename : null,
+        symbol: symbol,
+        use_real_data: useRealData
       };
       ws.send(JSON.stringify(payload));
     };
@@ -166,6 +170,8 @@ export default function App() {
             setActiveStrategy={setActiveSimulationStrategy}
             selectedStep={selectedStep}
             setSelectedStep={setSelectedStep}
+            symbol={symbol}
+            useRealData={useRealData}
           />
         );
       case 'dashboard':
@@ -194,6 +200,10 @@ export default function App() {
             csvFilename={csvFilename}
             setCsvFilename={setCsvFilename}
             latestEpisodeId={latestEpisodeId}
+            symbol={symbol}
+            setSymbol={setSymbol}
+            useRealData={useRealData}
+            setUseRealData={setUseRealData}
           />
         );
       default:

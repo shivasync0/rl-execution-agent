@@ -17,6 +17,7 @@ import MetricCard from '../components/MetricCard';
 import OrderBook from '../components/OrderBook';
 import OrderBlotter from '../components/OrderBlotter';
 import type { TradeLog } from '../components/OrderBlotter';
+import ExecutionAnalytics from '../components/ExecutionAnalytics';
 import StrategyBadge from '../components/StrategyBadge';
 
 interface LiveSimulatorProps {
@@ -28,6 +29,8 @@ interface LiveSimulatorProps {
   setActiveStrategy: (strategy: 'sac' | 'twap' | 'vwap' | 'random') => void;
   selectedStep: number | null;
   setSelectedStep: (step: number | null) => void;
+  symbol?: string;
+  useRealData?: boolean;
 }
 
 export default function LiveSimulator({
@@ -38,7 +41,9 @@ export default function LiveSimulator({
   activeStrategy,
   setActiveStrategy,
   selectedStep,
-  setSelectedStep
+  setSelectedStep,
+  symbol = 'AAPL',
+  useRealData = false
 }: LiveSimulatorProps) {
   
   // Confetti effect when episode completes and Agent beats TWAP
@@ -111,7 +116,9 @@ export default function LiveSimulator({
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-[#171B22] border border-[#262C36] rounded-xl">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-display font-bold text-white tracking-wide">Live Execution Simulator</h1>
+            <h1 className="text-xl font-display font-bold text-white tracking-wide">
+              Live Execution Simulator <span className="text-[#9CA3AF] text-lg font-normal">- {symbol} {useRealData ? '(Real Data)' : '(Simulated)'}</span>
+            </h1>
             <StrategyBadge strategy={activeStrategy} />
           </div>
           <p className="text-xs text-[#9CA3AF]">
@@ -202,6 +209,18 @@ export default function LiveSimulator({
           isMono={true}
         />
       </div>
+
+      {/* Phase 4: Execution Analytics Dashboard */}
+      {status !== 'IDLE' && steps.length > 0 && (
+        <ExecutionAnalytics
+          agentShortfall={latestStepData?.agent?.shortfall_bps || 0}
+          twapShortfall={latestStepData?.twap?.shortfall_bps || 0}
+          vwapShortfall={latestStepData?.vwap?.shortfall_bps || 0}
+          impactModel={latestStepData?.impact_model}
+          rewardComponents={latestStepData?.reward_components}
+          orderSize={steps[0]?.agent?.inventory_remaining || 10000}
+        />
+      )}
 
       {/* Main Grid: Charts & OrderBook */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

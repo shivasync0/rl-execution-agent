@@ -1,4 +1,7 @@
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { BarChart2, List } from 'lucide-react';
+import OrderBookDepthChart from './OrderBookDepthChart';
 
 export interface BookLevel {
   price: number;
@@ -13,6 +16,8 @@ interface OrderBookProps {
 }
 
 export default function OrderBook({ bids = [], asks = [], midPrice, spreadBps }: OrderBookProps) {
+  const [viewMode, setViewMode] = useState<'ladder' | 'chart'>('ladder');
+
   // Sort asks descending so highest ask is at the top
   const sortedAsks = [...asks].sort((a, b) => b.price - a.price);
   // Sort bids descending so highest bid (best bid) is at the top of bids
@@ -26,9 +31,27 @@ export default function OrderBook({ bids = [], asks = [], midPrice, spreadBps }:
   return (
     <div className="premium-card p-5 flex flex-col h-[480px] overflow-hidden select-none">
       <div className="flex items-center justify-between border-b border-[#262C36] pb-3 mb-3 shrink-0">
-        <h3 className="font-semibold text-white tracking-wider text-sm font-sans uppercase">
-          Live Order Book
-        </h3>
+        <div className="flex items-center gap-3">
+          <h3 className="font-semibold text-white tracking-wider text-sm font-sans uppercase">
+            Live Order Book
+          </h3>
+          <div className="flex bg-[#0F1115] border border-[#262C36] p-0.5 rounded">
+            <button
+              onClick={() => setViewMode('ladder')}
+              className={`p-1 rounded ${viewMode === 'ladder' ? 'bg-[#2D8C6A] text-white' : 'text-gray-500 hover:text-gray-300'}`}
+              title="Ladder View"
+            >
+              <List size={14} />
+            </button>
+            <button
+              onClick={() => setViewMode('chart')}
+              className={`p-1 rounded ${viewMode === 'chart' ? 'bg-[#2D8C6A] text-white' : 'text-gray-500 hover:text-gray-300'}`}
+              title="Depth Chart View"
+            >
+              <BarChart2 size={14} />
+            </button>
+          </div>
+        </div>
         <div className="text-right">
           <span className="text-xs text-gray-500 font-medium">Spread: </span>
           <span className="text-xs font-mono-tabular text-[#2D8C6A] font-semibold">
@@ -37,12 +60,18 @@ export default function OrderBook({ bids = [], asks = [], midPrice, spreadBps }:
         </div>
       </div>
 
-      {/* Table Headers */}
-      <div className="grid grid-cols-3 text-right text-[10px] font-bold text-gray-500 tracking-wider uppercase py-1 px-2 shrink-0 border-b border-[#262C36]">
-        <span className="text-left">Bid Size</span>
-        <span className="text-center">Price</span>
-        <span>Ask Size</span>
-      </div>
+      {viewMode === 'chart' ? (
+        <div className="flex-1 w-full mt-2">
+          <OrderBookDepthChart bids={bids} asks={asks} midPrice={midPrice} />
+        </div>
+      ) : (
+        <>
+          {/* Table Headers */}
+          <div className="grid grid-cols-3 text-right text-[10px] font-bold text-gray-500 tracking-wider uppercase py-1 px-2 shrink-0 border-b border-[#262C36]">
+            <span className="text-left">Bid Size</span>
+            <span className="text-center">Price</span>
+            <span>Ask Size</span>
+          </div>
 
       {/* Ladder Container */}
       <div className="flex-1 overflow-y-auto pr-1 flex flex-col justify-between py-1 font-mono-tabular text-xs">
@@ -128,6 +157,8 @@ export default function OrderBook({ bids = [], asks = [], midPrice, spreadBps }:
           </AnimatePresence>
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 }

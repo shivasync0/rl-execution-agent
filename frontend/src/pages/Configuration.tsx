@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Upload, Download, Settings, FileText, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Upload, Download, Settings, FileText, CheckCircle, AlertTriangle, TrendingUp, BarChart2, Activity } from 'lucide-react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
 
 interface ConfigurationProps {
@@ -16,6 +16,10 @@ interface ConfigurationProps {
   csvFilename: string | null;
   setCsvFilename: (filename: string | null) => void;
   latestEpisodeId: string | null;
+  symbol: string;
+  setSymbol: (symbol: string) => void;
+  useRealData: boolean;
+  setUseRealData: (use: boolean) => void;
 }
 
 export default function Configuration({
@@ -31,12 +35,51 @@ export default function Configuration({
   setDataSource,
   csvFilename,
   setCsvFilename,
-  latestEpisodeId
+  latestEpisodeId,
+  symbol,
+  setSymbol,
+  useRealData,
+  setUseRealData
 }: ConfigurationProps) {
   
   const [isDragging, setIsDragging] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<{ type: 'idle' | 'success' | 'error'; message: string }>({ type: 'idle', message: '' });
   const [previewData, setPreviewData] = useState<any[]>([]);
+  
+  // Real data details
+  const [symbolDetails, setSymbolDetails] = useState<any | null>(null);
+  const [isFetchingSymbol, setIsFetchingSymbol] = useState(false);
+
+  // Fetch real symbol data
+  useEffect(() => {
+    if (!useRealData || !symbol || symbol.length < 2) {
+      setSymbolDetails(null);
+      return;
+    }
+
+    const fetchSymbolInfo = async () => {
+      setIsFetchingSymbol(true);
+      try {
+        // Fetch all symbols to get the name, price, adv
+        const res = await fetch('http://localhost:8000/market/symbols');
+        if (res.ok) {
+          const symbols = await res.json();
+          const match = symbols.find((s: any) => s.symbol === symbol.toUpperCase());
+          if (match && match.price > 0) {
+            setSymbolDetails(match);
+          } else {
+            setSymbolDetails(null);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch symbol info", err);
+      }
+      setIsFetchingSymbol(false);
+    };
+
+    const timeoutId = setTimeout(fetchSymbolInfo, 800);
+    return () => clearTimeout(timeoutId);
+  }, [symbol, useRealData]);
 
   // Run a quick client-side mini-simulation to render the live preview execution curve
   useEffect(() => {
@@ -269,24 +312,88 @@ export default function Configuration({
                 </span>
                 <div className="flex bg-[#0F1115] border border-[#262C36] p-1 rounded">
                   <button
-                    onClick={() => setDataSource('gbm')}
+                    onClick={() => setUseRealData(true)}
                     className={`flex-1 py-1.5 rounded font-bold text-xs uppercase transition-all ${
-                      dataSource === 'gbm' ? 'bg-[#2D8C6A] text-white' : 'text-[#9CA3AF] hover:text-gray-300'
+                      useRealData ? 'bg-[#2D8C6A] text-white' : 'text-[#9CA3AF] hover:text-gray-300'
                     }`}
                   >
-                    Synthetic GBM
+                    Yahoo Finance (Real)
                   </button>
                   <button
-                    onClick={() => setDataSource('csv')}
+                    onClick={() => setUseRealData(false)}
                     className={`flex-1 py-1.5 rounded font-bold text-xs uppercase transition-all ${
-                      dataSource === 'csv' ? 'bg-[#2D8C6A] text-white' : 'text-[#9CA3AF] hover:text-gray-300'
+                      !useRealData ? 'bg-[#2D8C6A] text-white' : 'text-[#9CA3AF] hover:text-gray-300'
                     }`}
                   >
-                    Upload CSV
+                    Simulated (GBM)
                   </button>
                 </div>
               </div>
+
+              {/* Ticker Symbol (only active if Real Data) */}
+              <div className="col-span-2 sm:col-span-1 pt-2">
+                <span className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                  Ticker Symbol
+                </span>
+                <input
+                  type="text"
+                  value={symbol}
+                  onChange={(e) => setSymbol(e.target.value.toUpperCase())}
+                  disabled={!useRealData}
+                  placeholder="e.g. AAPL"
+                  className="w-full bg-[#0F1115] border border-[#262C36] rounded p-2 text-white text-sm focus:outline-none focus:border-[#2D8C6A] disabled:opacity-50 disabled:cursor-not-allowed uppercase font-mono"
+                />
+              </div>
             </div>
+
+            {/* Realistic Symbol Info Card */}
+            {useRealData && symbolDetails && (
+              <div className="mt-4 p-4 rounded-lg bg-[#0F1115] border border-[#262C36] flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="bg-[#2D8C6A]/20 p-1.5 rounded">
+                      <TrendingUp size={16} className="text-[#2D8C6A]" />
+                    </div>
+                    <div>
+                      <h4 className="text-white font-bold tracking-wider">{symbolDetails.symbol}</h4>
+                      <p className="text-[10px] text-gray-400 truncate max-w-[150px]">{symbolDetails.name}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-white font-mono font-bold">${symbolDetails.price.toFixed(2)}</div>
+                    <div className="text-[10px] text-[#2D8C6A]">Real-Time Snapshot</div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 mt-2 pt-3 border-t border-[rgba(255,255,255,0.05)]">
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-1 text-[10px] text-gray-500 uppercase tracking-wider font-bold">
+                      <BarChart2 size={12} />
+                      Avg Daily Volume
+                    </div>
+                    <div className="text-xs text-gray-300 font-mono">
+                      {(symbolDetails.avg_daily_volume / 1000000).toFixed(2)}M shares
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-1 text-[10px] text-gray-500 uppercase tracking-wider font-bold">
+                      <Activity size={12} />
+                      Implied Volatility
+                    </div>
+                    <div className="text-xs text-gray-300 font-mono">
+                      {(volatilityRegime === 'high' ? 0.30 : 0.10 * 100).toFixed(1)}% (Regime)
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {useRealData && isFetchingSymbol && !symbolDetails && (
+              <div className="mt-4 p-4 rounded-lg bg-[#0F1115] border border-[#262C36] flex items-center justify-center">
+                <span className="text-xs text-gray-500 animate-pulse">Fetching market data...</span>
+              </div>
+            )}
+            
           </div>
 
           {/* CSV File Upload Section */}

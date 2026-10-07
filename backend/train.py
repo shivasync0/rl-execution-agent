@@ -7,6 +7,7 @@ import torch.nn.functional as F
 import numpy as np
 import pandas as pd
 from env import ExecutionEnv
+from env_v2 import RealMarketExecutionEnv
 from agent import SACAgent, Actor, Critic
 
 class ReplayBuffer:
@@ -39,13 +40,13 @@ def train_sac(num_episodes=120, batch_size=128, gamma=0.99, tau=0.005, alpha=0.1
     # Use CPU since we want to install CPU-only torch
     device = torch.device("cpu")
     
-    env = ExecutionEnv(order_size=10000, horizon=20, market_impact=0.0001, volatility_regime="low")
+    env = RealMarketExecutionEnv(order_size=10000, horizon=20, market_impact=0.0001, volatility_regime="low", use_real_data=False)
     
     # Initialize networks
-    agent = SACAgent(state_dim=7, action_dim=1, device="cpu")
+    agent = SACAgent(state_dim=10, action_dim=1, device="cpu")
     
     # Twin targets for Critic
-    critic_target = Critic(state_dim=7, action_dim=1).to(device)
+    critic_target = Critic(state_dim=10, action_dim=1).to(device)
     critic_target.load_state_dict(agent.critic.state_dict())
     
     # Optimizers
@@ -164,7 +165,7 @@ def evaluate_baselines(agent, num_evals=500):
         seed = 42 + i
         
         # --- 1. Agent ---
-        env_agent = ExecutionEnv(order_size=order_size, horizon=horizon, market_impact=impact, volatility_regime=regime, initial_price=initial_price)
+        env_agent = RealMarketExecutionEnv(order_size=order_size, horizon=horizon, market_impact=impact, volatility_regime=regime, initial_price=initial_price, use_real_data=False)
         state, info = env_agent.reset(seed=seed)
         done = False
         agent_reward = 0.0
@@ -193,7 +194,7 @@ def evaluate_baselines(agent, num_evals=500):
         regimes[vol_key]["agent"].append(agent_sf)
         
         # --- 2. TWAP ---
-        env_twap = ExecutionEnv(order_size=order_size, horizon=horizon, market_impact=impact, volatility_regime=regime, initial_price=initial_price)
+        env_twap = RealMarketExecutionEnv(order_size=order_size, horizon=horizon, market_impact=impact, volatility_regime=regime, initial_price=initial_price, use_real_data=False)
         state, info = env_twap.reset(seed=seed)
         done = False
         twap_reward = 0.0
@@ -233,7 +234,7 @@ def evaluate_baselines(agent, num_evals=500):
         regimes[vol_key]["twap"].append(twap_sf)
         
         # --- 3. VWAP ---
-        env_vwap = ExecutionEnv(order_size=order_size, horizon=horizon, market_impact=impact, volatility_regime=regime, initial_price=initial_price)
+        env_vwap = RealMarketExecutionEnv(order_size=order_size, horizon=horizon, market_impact=impact, volatility_regime=regime, initial_price=initial_price, use_real_data=False)
         state, info = env_vwap.reset(seed=seed)
         done = False
         vwap_reward = 0.0
@@ -310,8 +311,8 @@ def main():
     for inv_pct in np.linspace(1.0, 0.0, 10):
         row = []
         for time_pct in np.linspace(0.0, 1.0, 10):
-            # State vector: [spread_bps, imbalance, time_pct, inventory_pct, mom5, mom20, vol]
-            state = np.array([0.0, 0.0, time_pct, inv_pct, 0.0, 0.0, 0.0], dtype=np.float32)
+            # State vector: [spread_bps, imbalance, time_pct, inv_pct, mom5, mom20, vol, vol_ratio, vwap_dist, impact_est]
+            state = np.array([0.0, 0.0, time_pct, inv_pct, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=np.float32)
             action = agent.select_action(state, deterministic=True)
             row.append(float(action[0]))
         policy_heatmap.append(row)
